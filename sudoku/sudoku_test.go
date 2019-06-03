@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-var puzzle = Sudoku{
+var easy = Sudoku{
 	{3,0,2,0,0,0,0,0,0},
 	{7,8,0,6,0,4,0,9,0},
 	{6,4,0,0,2,5,3,0,0},
@@ -15,6 +15,54 @@ var puzzle = Sudoku{
 	{0,0,7,9,6,0,0,1,4},
 	{0,1,0,2,0,3,0,5,7},
 	{0,0,0,0,0,0,6,0,9},
+}
+
+var medium = Sudoku{
+	{6,0,0,0,0,2,0,0,9},
+	{0,0,0,0,0,7,4,0,0},
+	{0,1,9,0,0,0,5,8,0},
+	{4,8,0,0,0,3,0,0,5},
+	{0,0,7,0,0,0,8,0,0},
+	{9,0,0,5,0,0,0,1,4},
+	{0,7,2,0,0,0,3,6,0},
+	{0,0,6,1,0,0,0,0,0},
+	{1,0,0,2,0,0,0,0,7},
+}
+
+var hard = Sudoku{
+	{3,0,0,1,0,0,8,0,4},
+	{0,5,6,8,3,0,0,0,0},
+	{0,0,0,0,6,0,0,3,0},
+	{0,9,0,0,0,0,0,0,0},
+	{0,1,3,5,0,4,9,7,0},
+	{0,0,0,0,0,0,0,8,0},
+	{0,6,0,0,7,0,0,0,0},
+	{0,0,0,0,4,8,5,2,0},
+	{7,0,4,0,0,1,0,0,6},
+}
+
+var evil = Sudoku{
+	{0,7,0,8,9,0,3,0,0},
+	{0,0,1,0,0,0,7,2,0},
+	{0,0,0,0,4,0,0,0,0},
+	{5,0,0,0,0,6,2,8,0},
+	{3,0,0,0,0,0,0,0,4},
+	{0,2,6,1,0,0,0,0,7},
+	{0,0,0,0,2,0,0,0,0},
+	{0,6,5,0,0,0,4,0,0},
+	{0,0,9,0,7,8,0,5,0},
+}
+
+var impossible = Sudoku{
+	{0,7,0,0,0,6,0,0,0},
+	{9,0,0,0,0,0,0,4,1},
+	{0,0,8,0,0,9,0,5,0},
+	{0,9,0,0,0,7,0,0,2},
+	{0,0,3,0,0,0,8,0,0},
+	{4,0,0,8,0,0,0,1,0},
+	{0,8,0,3,0,0,9,0,0},
+	{1,6,0,0,0,0,0,0,7},
+	{0,0,0,5,0,0,0,8,0},
 }
 
 func TestValidateNumber(t *testing.T) {
@@ -36,9 +84,36 @@ func TestValidateNumber(t *testing.T) {
 		{5, 4, 4, true},
 	}
 	for _, c := range cases {
-		got := puzzle.validateNumber(c.n, c.x, c.y)
+		got := easy.validateNumber(c.n, c.x, c.y)
 		if got != c.want {
 			t.Errorf("ValidateNumber(%v,%v,%v) == %v", c.n, c.x, c.y, c.want)
 		}
 	}
+}
+
+func TestSolve(t *testing.T) {
+	cases := []struct {
+		puzzle Sudoku
+		name string
+		want bool
+	}{
+		{easy, "easy", true},
+		{medium, "medium", true},
+		{hard, "hard", true},
+		{evil, "evil" ,true},
+		{impossible, "impossible" ,false},
+	}
+	for _, c := range cases {
+		got := true
+		c.puzzle.Solve()
+
+		if c.puzzle == nil {
+			got = false
+		}
+
+		if got != c.want {
+			t.Errorf("%s was incorrectly identified", c.name)
+		}
+	}
+
 }

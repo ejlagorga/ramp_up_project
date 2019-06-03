@@ -39,11 +39,6 @@ func (puzzle Sudoku) Print() {
 }
 
 func (puzzle Sudoku) validateNumber(n, x, y uint8) bool {
-	//no number present	
-	if puzzle[x][y] != 0 {
-		return false
-	}
-	
 	//no matching num in row
 	for _, v := range puzzle[x] {
 		if v == n { return false }
@@ -61,4 +56,42 @@ func (puzzle Sudoku) validateNumber(n, x, y uint8) bool {
 	}
 
 	return true
+}
+
+func dfs(puzzle Sudoku, x, y uint8) (bool, Sudoku) {
+	// return true if end of puzzle reached
+	if x >= 9 {
+		return true, puzzle
+	}
+	
+	// if space is filled, move to next space
+	if puzzle[x][y] > 0 {
+		solved, puzzle := dfs(puzzle, x+(y/8), (y+1)%9)
+		return solved, puzzle
+	}
+
+	// loop over potential values
+	for num := uint8(1); num <= 9; num++ {
+		// if value is possible, update puzzle and call dfs
+		if puzzle.validateNumber(num, x, y) {
+			puzzle[x][y] = num
+			// if puzzle solution is found, return
+			if solved, puzzle := dfs(puzzle, x+(y/8), (y+1)%9); solved {
+				return solved, puzzle
+			}
+		}
+	}
+
+	// if value can be put in space, backtrack
+	puzzle[x][y] = 0
+	return false, puzzle
+}
+
+func (puzzle *Sudoku) Solve() {
+	solved, p := dfs(*puzzle, 0, 0)
+	if !solved {
+		*puzzle = nil
+	} else {
+		*puzzle = p
+	}
 }
