@@ -178,14 +178,15 @@ func integer(puzzle Sudoku) (bool, Sudoku) {
 	// set solver parameters for integer optimization
 	parameters := glpk.NewIocp()
 	parameters.SetPresolve(true)
-	solver.Intopt(parameters)
+	if error := solver.Intopt(parameters); error != nil {
+		return false, puzzle
+	}
 
 	// recreate 2d representation from tensor form
 	for i := 0; i < 9; i ++ {
 		for j := 0; j < 9; j ++ {
 			for k := 0; k < 9; k++ {
 				if solver.MipColVal(i + 9*j + 81*k + 1) == 1 {
-					fmt.Printf("(%v,%v) = %v\n", i,j,k)
 					puzzle[i][j] = uint8(k+1)
 				}
 			}
@@ -224,11 +225,15 @@ func dfs(puzzle Sudoku, x, y uint8) (bool, Sudoku) {
 	return false, puzzle
 }
 
-func (puzzle *Sudoku) Solve() {
-	solved, p := integer(*puzzle)
-	if !solved {
-		*puzzle = nil
+func (puzzle *Sudoku) Solve(algo string) {
+	if algo == "dfs" {
+		solved, p := dfs(*puzzle, 0, 0)
+		if !solved { *puzzle = nil } else { *puzzle = p }
+	} else if algo == "integer" {
+		solved, p := integer(*puzzle)
+		if !solved { *puzzle = nil } else { *puzzle = p }
 	} else {
-		*puzzle = p
+		fmt.Print("Try \"sudoku.Solve(dfs)\" or \"sudoku.Solve(dfs)\" " )
+		return
 	}
 }

@@ -94,18 +94,26 @@ func TestValidateNumber(t *testing.T) {
 func TestSolve(t *testing.T) {
 	cases := []struct {
 		puzzle Sudoku
-		name string
+		name, algo string
 		want bool
 	}{
-		{easy, "easy", true},
-		{medium, "medium", true},
-		{hard, "hard", true},
-		{evil, "evil" ,true},
-		{impossible, "impossible" ,false},
+		// dfs tests
+		{easy, "easy", "dfs", true},
+		{medium, "medium", "dfs", true},
+		{hard, "hard", "dfs", true},
+		{evil, "evil", "dfs", true},
+		{impossible, "impossible", "dfs", false},
+
+		// integer programing tests
+		{easy, "easy", "integer", true},
+		{medium, "medium", "integer", true},
+		{hard, "hard", "integer", true},
+		{evil, "evil", "integer", true},
+		{impossible, "impossible", "integer", false},
 	}
 	for _, c := range cases {
 		got := true
-		c.puzzle.Solve()
+		c.puzzle.Solve(c.algo)
 
 		if c.puzzle == nil {
 			got = false
