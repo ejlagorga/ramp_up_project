@@ -3,6 +3,7 @@ package sudoku
 
 import (
 	"fmt"
+	"github.com/lukpank/go-glpk/glpk"
 )
 
 type Sudoku [][]uint8
@@ -58,6 +59,142 @@ func (puzzle Sudoku) validateNumber(n, x, y uint8) bool {
 	return true
 }
 
+func integer(puzzle Sudoku) (bool, Sudoku) {
+	// initial new linear programing problem
+	solver := glpk.New()
+	// set optimization goal?
+	solver.SetObjDir(glpk.MAX)
+
+	// count the number of hints in the puzzle
+	hints := 0
+	for i, row := range puzzle {
+		for j, _ := range row {
+			if puzzle[i][j] > 0 {
+				hints++
+			}
+		}
+	}
+
+	// create #(hints) + 4*9*9 empty constrains
+	constraints := hints + 4*9*9
+	solver.AddRows(constraints)
+	// set each constraint equal to 1, effectively making the problem and binary programing problem
+	for i := 1; i <= constraints; i++ {
+		solver.SetRowBnds(i, glpk.FX, 1, 1)
+	}
+
+	// add 9x9x9 tensor of variables representing indicator vars for each cell/value pair
+	variables := 9*9*9
+	solver.AddCols(variables)
+	for i := 1; i <= variables; i++ {
+		// declare all variables as binary vars i.e. {0,1}
+		solver.SetColKind(i, glpk.BV)
+		// set col boundries?
+		solver.SetColBnds(i, glpk.DB, 0, 1)
+		// set objective function coefficients?
+		solver.SetObjCoef(i, 0)
+	}
+
+	ia := make([]int32, 100000)
+	ja := make([]int32, 100000)
+	ar := make([]float64, 100000)
+
+	p := 1;
+	rno := int32(1);
+	
+	// hint constraints
+    for r := 0; r < 9; r++ {
+        for c := 0; c < 9; c++ {
+            if(puzzle[r][c] > 0) {
+				ia[p] = rno
+				rno++
+				ja[p] = int32(r*9*9 + c*9 + int(puzzle[r][c]))
+				ar[p] = 1.0
+                p++
+            }
+        }
+    }
+    
+	// Single value constraints
+    for i := 0; i < 9; i++ {
+        for j := 0; j < 9; j++ {
+            for k := 0; k < 9; k++ {
+				ia[p] = rno
+				ja[p] = int32(i*9*9 + j*9 + k + 1)
+				ar[p] = 1.0
+                p++
+            }
+            rno++
+        }
+    }
+
+	// row constraints
+    for i := 0; i < 9; i++ {
+    	for k := 0; k < 9; k++ {
+    		for j := 0; j < 9; j++ {
+				ia[p] = rno
+				ja[p] = int32(i*9*9 + j*9 + k + 1)
+				ar[p] = 1.0
+                p++
+            }
+            rno++
+        }
+	}
+
+	// col constraints
+ 	for j := 0; j < 9; j++ {
+    	for k := 0; k < 9; k++ {
+    		for i := 0; i < 9; i++ {
+				ia[p] = rno
+				ja[p] = int32(i*9*9 + j*9 + k + 1)
+				ar[p] = 1.0
+                p++
+            }
+            rno++
+        }
+
+	}
+
+	// box constraints
+    for I := 0; I < 9; I+=3 {
+    	for J := 0; J < 9; J+=3 {
+    		for k := 0; k < 9; k++ {
+                for i := I; i<I+3; i++ {
+                    for j := J; j<J+3; j++ {
+						ia[p] = rno
+						ja[p] = int32(i*9*9 + j*9 + k + 1)
+						ar[p] = 1.0
+                        p++
+                    }
+                }
+                rno++
+            }
+        }
+	}
+	
+	// load constraints into solver
+	solver.LoadMatrix(ia[:p], ja[:p], ar[:p])
+
+	// set solver parameters for integer optimization
+	parameters := glpk.NewIocp()
+	parameters.SetPresolve(true)
+	solver.Intopt(parameters)
+
+	// recreate 2d representation from tensor form
+	for i := 0; i < 9; i ++ {
+		for j := 0; j < 9; j ++ {
+			for k := 0; k < 9; k++ {
+				if solver.MipColVal(i + 9*j + 81*k + 1) == 1 {
+					fmt.Printf("(%v,%v) = %v\n", i,j,k)
+					puzzle[i][j] = uint8(k+1)
+				}
+			}
+		}
+	} 
+
+	return true, puzzle
+}
+
 func dfs(puzzle Sudoku, x, y uint8) (bool, Sudoku) {
 	// return true if end of puzzle reached
 	if x >= 9 {
@@ -88,7 +225,7 @@ func dfs(puzzle Sudoku, x, y uint8) (bool, Sudoku) {
 }
 
 func (puzzle *Sudoku) Solve() {
-	solved, p := dfs(*puzzle, 0, 0)
+	solved, p := integer(*puzzle)
 	if !solved {
 		*puzzle = nil
 	} else {
